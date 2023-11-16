@@ -1,0 +1,35 @@
+from rest_framework.views import APIView
+from rest_framework.parsers import MultiPartParser
+from django.http import JsonResponse
+import tempfile
+import os
+
+class FileUploadView(APIView):
+    parser_classes = (MultiPartParser,)
+
+    def post(self, request, format=None):
+        up_file = request.FILES['file']
+
+        # Check the file extension
+        file_extension = os.path.splitext(up_file.name)[1].lower()
+
+        supported_formats = ['.xlsx', '.xlsm', '.xltx', '.xltm']
+
+        if file_extension not in supported_formats:
+            return JsonResponse({'error': 'Unsupported file format'}, status=400)
+
+        # Continue processing the file
+        tf = tempfile.NamedTemporaryFile(delete=False)
+        for chunk in up_file.chunks():
+            tf.write(chunk)
+        file_path = tf.name
+
+        ws = Worksheet()
+        data = ws.xlsx_to_dict(file_path)
+
+        print('data:', data)
+
+        tf.close()
+        os.unlink(tf.name)
+
+        return JsonResponse({}, safe=False)
